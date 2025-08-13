@@ -1,0 +1,44 @@
+---
+- name: Include task to get controller token # noqa: run-once[task]
+  when: aap_token is undefined
+  ansible.builtin.include_tasks: get_aap_token.yml
+
+- name: If stopping or restarting, disable instances and wait for jobs to finish
+  delegate_to: localhost
+  block:
+    - name: Disable all Controller instances # noqa: run-once[task]
+      run_once: true
+      ansible.controller.instance:
+        controller_host: "{{ groups['automationgateway'] | first }}"
+        controller_oauthtoken: "{{ aap_token['token'] }}"
+        validate_certs: "{{ aap_svc_control_validate_certs }}"
+        hostname: "{{ item }}"
+        enabled: false
+      loop: "{{ groups['automationcontroller'] }}"
+
+    - name: Disable all Execution instances # noqa: run-once[task]
+      when:
+        - groups['execution_nodes'] is defined
+        - groups['execution_nodes'] | length > 0
+      run_once: true
+      ansible.controller.instance:
+        controller_host: "{{ groups['automationgateway'] | first }}"
+        controller_oauthtoken: "{{ aap_token['token'] }}"
+        validate_certs: "{{ aap_svc_control_validate_certs }}"
+        hostname: "{{ item }}"
+        enabled: false
+      loop: "{{ groups['execution_nodes'] }}"
+
+    - name: Make sure any running jobs complete # noqa: run-once[task]
+      register: runningjobs
+      retries: 30 # max wait 15 minutes
+      delay: 30
+      until: runningjobs['count'] | int == 0
+      run_once: true
+      ansible.controller.job_list:
+        controller_host: "{{ groups['automationgateway'] | first }}"
+        controller_oauthtoken: "{{ aap_token['token'] }}"
+        validate_certs: "{{ aap_svc_control_validate_certs }}"
+        all_pages: true
+        status: 'running'
+...

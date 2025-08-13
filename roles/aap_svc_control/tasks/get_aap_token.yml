@@ -1,0 +1,37 @@
+---
+- name: Get AAP token (containerized) # noqa: run-once[task]
+  delegate_to: localhost
+  run_once: true
+  when:
+    - aap_token is undefined
+    - gateway_admin_password is defined
+    - is_containerized
+  retries: 5
+  delay: 15
+  until: aap_token is defined
+  ansible.platform.token:
+    gateway_hostname: "{{ groups['automationgateway'] | first }}"
+    gateway_username: 'admin'
+    gateway_password: "{{ gateway_admin_password }}"
+    gateway_validate_certs: "{{ aap_svc_control_validate_certs }}"
+    scope: 'write'
+    state: 'present'
+
+- name: Get AAP token (RPM) # noqa: run-once[task]
+  delegate_to: localhost
+  run_once: true
+  when:
+    - aap_token is undefined
+    - automationgateway_admin_password is defined
+    - not is_containerized
+  retries: 5
+  delay: 15
+  until: aap_token is defined
+  ansible.platform.token:
+    gateway_hostname: "{{ groups['automationgateway'] | first }}"
+    gateway_username: 'admin'
+    gateway_password: "{{ automationgateway_admin_password }}"
+    gateway_validate_certs: "{{ aap_svc_control_validate_certs }}"
+    scope: 'write'
+    state: 'present'
+...

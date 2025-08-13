@@ -1,0 +1,36 @@
+---
+- name: Block to check vars provided
+  become: false
+  block:
+    - name: 'Verify Satellite credentials were provided'
+      register: assert_status
+      ansible.builtin.assert:
+        that:
+          - patch_os_satellite_host is defined
+          - patch_os_satellite_host | length >= 1
+          - patch_os_satellite_user is defined
+          - patch_os_satellite_user | length >= 1
+          - patch_os_satellite_passwd is defined
+          - patch_os_satellite_passwd | length >= 1
+        fail_msg: "Failed to provide credentials to check for missing errata.  Skipping errata check"
+  rescue:
+    - name: Reset host
+      ansible.builtin.meta: clear_host_errors
+
+- name: Block to check for missing errata
+  become: false
+  when: assert_status['evaluated_to']
+  block:
+    - name: 'Check for missing errata'
+      register: host_errata_results
+      redhat.satellite.host_errata_info:
+        server_url: "https://{{ patch_os_satellite_host }}"
+        username: "{{ patch_os_satellite_user }}"
+        password: "{{ patch_os_satellite_passwd }}"
+        host: "{{ inventory_hostname }}"
+        validate_certs: "{{ patch_os_satellite_validate_certs }}"
+
+    - name: 'Show missing errata'
+      ansible.builtin.debug:
+        var: host_errata_results
+...

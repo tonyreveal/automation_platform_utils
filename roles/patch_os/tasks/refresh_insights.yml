@@ -1,0 +1,15 @@
+---
+- name: Check insights client status
+  changed_when: false
+  ignore_errors: true
+  register: __ic_status
+  ansible.builtin.command: 'insights-client --status'
+
+- name: Register insights client if not already registered # noqa no-changed-when
+  when: __ic_status.rc != 0
+  ansible.builtin.command: 'insights-client --register'
+
+- name: Refresh insights data for hosts already registered # noqa no-changed-when
+  when: __ic_status.rc == 0
+  ansible.builtin.command: 'insights-client'
+...

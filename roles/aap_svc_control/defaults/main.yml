@@ -1,0 +1,4 @@
+---
+aap_svc_control_reqd_state: "{{ desired_state | default('restarted') }}"
+aap_svc_control_validate_certs: "{{ aap_validate_certs | default('false') }}"
+...

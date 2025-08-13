@@ -1,0 +1,13 @@
+---
+- name: 'Get services facts for all hosts'
+  ansible.builtin.service_facts:
+
+- name: Check for AAP directory in users home directory
+  register: aap_stat
+  ansible.builtin.stat:
+    path: '~/aap'
+
+- name: Set fact for RPM or Containerized
+  ansible.builtin.set_fact:
+    is_containerized: "{{ aap_stat['stat']['exists'] }}"
+...

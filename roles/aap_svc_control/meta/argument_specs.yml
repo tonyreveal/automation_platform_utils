@@ -1,0 +1,21 @@
+---
+argument_specs:
+  main:
+    short_description: A role to control AAP services
+    options:
+      desired_state:
+        choices:
+          - stopped
+          - started
+          - restarted
+        description: Whether to stop, start, or restart AAP
+        required: false
+        type: str
+      aap_validate_certs:
+        choices:
+          - true
+          - false
+        description: Whether to perform certificate validation or not
+        required: false
+        type: bool
+...

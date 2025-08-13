@@ -1,0 +1,83 @@
+---
+- name: Services in Controller Group
+  when: inventory_hostname in groups['automationcontroller']
+  loop: "{{ aap_svc_control_containerized_controller_svcs }}"
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    scope: 'user'
+    state: "{{ aap_svc_control_reqd_state }}"
+
+- name: Services in Execution Nodes Group
+  when: inventory_hostname in groups['execution_nodes']
+  loop: "{{ aap_svc_control_containerized_hopexec_svcs }}"
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    scope: 'user'
+    state: "{{ aap_svc_control_reqd_state }}"
+
+- name: Services in Hub Group
+  when: inventory_hostname in groups['automationhub']
+  loop: "{{ aap_svc_control_containerized_hub_svcs }}"
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    scope: 'user'
+    state: "{{ aap_svc_control_reqd_state }}"
+
+- name: Services in EDA Group
+  when: inventory_hostname in groups['automationeda']
+  loop: "{{ aap_svc_control_containerized_eda_svcs }}"
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    scope: 'user'
+    state: "{{ aap_svc_control_reqd_state }}"
+
+- name: Standalone Redis stop
+  when:
+    - inventory_hostname in groups['automationgateway']
+    - groups['redis'] is undefined
+    - redis_mode == 'standalone'
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    scope: 'user'
+    state: "{{ aap_svc_control_reqd_state }}"
+
+- name: Get list of user Services # noqa: command-instead-of-module
+  when: inventory_hostname in groups['redis']
+  changed_when: false
+  register: user_services
+  ansible.builtin.command: 'systemctl --user list-units --type=service'
+
+- name: Clustered Redis-tcp stop
+  when:
+    - groups['redis'] is defined
+    - inventory_hostname in groups['redis']
+  ansible.builtin.systemd_service:
+    name: 'redis-tcp.service'
+    scope: 'user'
+    state: "{{ aap_svc_control_reqd_state }}"
+
+- name: Clustered Redis-unix stop
+  when:
+    - groups['redis'] is defined
+    - inventory_hostname in groups['redis']
+    - "'redis-unix.service' in user_services['stdout']"
+  ansible.builtin.systemd_service:
+    name: 'redis-unix.service'
+    scope: 'user'
+    state: "{{ aap_svc_control_reqd_state }}"
+
+- name: Services in Gateway Group
+  when: inventory_hostname in groups['automationgateway']
+  loop: "{{ aap_svc_control_containerized_gateway_svcs }}"
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    scope: 'user'
+    state: "{{ aap_svc_control_reqd_state }}"
+
+- name: Services in Database Group
+  when: inventory_hostname in groups['database']
+  ansible.builtin.systemd_service:
+    name: 'postgresql.service'
+    scope: 'user'
+    state: "{{ aap_svc_control_reqd_state }}"
+...

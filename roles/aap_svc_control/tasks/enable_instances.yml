@@ -1,0 +1,31 @@
+---
+- name: Include task to get controller token # noqa: run-once[task]
+  when: aap_token is undefined
+  ansible.builtin.include_tasks: get_aap_token.yml
+
+- name: When starting or restarting, enable instances
+  delegate_to: localhost
+  block:
+    - name: Enable all Controller instances # noqa: run-once[task]
+      loop: "{{ groups['automationcontroller'] }}"
+      run_once: true
+      ansible.controller.instance:
+        controller_host: "{{ groups['automationgateway'] | first }}"
+        controller_oauthtoken: "{{ aap_token['token'] }}"
+        validate_certs: "{{ aap_svc_control_validate_certs }}"
+        hostname: "{{ item }}"
+        enabled: true
+
+    - name: Enable all Execution instances # noqa: run-once[task]
+      when:
+        - groups['execution_nodes'] is defined
+        - groups['execution_nodes'] | length > 0
+      loop: "{{ groups['execution_nodes'] }}"
+      run_once: true
+      ansible.controller.instance:
+        controller_host: "{{ groups['automationgateway'] | first }}"
+        controller_oauthtoken: "{{ aap_token['token'] }}"
+        validate_certs: "{{ aap_svc_control_validate_certs }}"
+        hostname: "{{ item }}"
+        enabled: true
+...

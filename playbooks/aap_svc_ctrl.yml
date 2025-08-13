@@ -1,0 +1,29 @@
+# It is necessary to use the AAP inventory file when
+# running this playbook.  The inventory hostgroups are used to determine
+# which services to stop and on which nodes of the cluster.
+#
+# Use for any scenario where stopping, starting, or restarting
+# AAP is necessary.  Patching for example.  Or upgrades.
+#
+# Works for both an enterprise and growth topologies as well as
+# standalone and clustered redis.
+#
+# Usage:
+# Valid values for reqd_state are: stopped, started, or restarted.
+# ansible-playbook aap.utils.aap_svc_ctrl -i inventory -e reqd_state=restarted
+#
+# Defaults to false for certificate validation when checking for running jobs
+# and disabling instances before stopping or restarting.  To perform
+# certificate validation:
+#
+# ansible-playbook aap.utils.aap_svc_ctrl -i inventory -e reqd_state=restarted -e aap_validate_certs=true
+#
+# Author: Tony Reveal (tony.reveal@redhat.com)
+
+---
+- name: Stop, Start, Restart AAP services
+  hosts: all
+  gather_facts: false
+  roles:
+    - aap.utils.aap_svc_control
+...

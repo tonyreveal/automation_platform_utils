@@ -1,0 +1,88 @@
+---
+- name: Include tasks to determine if AAP is RPM or containerized
+  ansible.builtin.include_tasks: precheck.yml
+
+- name: Use block with become
+  become: true
+  block:
+    - name: 'Install dnf-utils'
+      ansible.builtin.dnf:
+        name: 'dnf-utils'
+        state: installed
+
+    - name: 'Update all packages on RHEL hosts'
+      when:
+        - not patch_os_only_security
+        - not patch_os_only_bugfix
+      ansible.builtin.dnf:
+        name: "*"
+        state: 'latest' # noqa package-latest
+        disablerepo:
+          - '^ansible-automation-platform-2.*'
+
+    - name: 'Update security fixes only on RHEL hosts'
+      when: patch_os_only_security
+      ansible.builtin.dnf:
+        name: "*"
+        security: true
+        state: 'latest' # noqa package-latest
+        disablerepo:
+          - '^ansible-automation-platform-2.*'
+
+    - name: 'Update bugfixes only on RHEL hosts'
+      when: patch_os_only_bugfix
+      ansible.builtin.dnf:
+        name: "*"
+        bugfix: true
+        state: 'latest' # noqa package-latest
+        disablerepo:
+          - '^ansible-automation-platform-2.*'
+
+- name: 'Run reboot tasks if not kernel live patching'
+  when: "'kpatch.service' not in ansible_facts['services']"
+  block:
+    - name: 'Check if reboot is required' # noqa no-changed-when
+      become: true
+      register: needs_reboot_result
+      changed_when: false
+      failed_when: false
+      ansible.builtin.command:
+        cmd: 'needs-restarting -r'
+
+    - name: 'Block if reboot is required'
+      when: needs_reboot_result['rc'] == 1
+      block:
+        - name: 'Include token task file'
+          ansible.builtin.include_role:
+            name: aap.utils.aap_svc_control
+            tasks_from: get_aap_token.yml
+
+        - name: 'Include tasks to disable instances'
+          ansible.builtin.include_role:
+            name: aap.utils.aap_svc_control
+            tasks_from: disable_instances.yml
+
+        - name: 'Reboot if required'
+          when: needs_reboot_result['rc'] == 1
+          become: true
+          ansible.builtin.reboot:
+
+        - name: 'Allow all services to start before attempting to enable instances'
+          ansible.builtin.wait_for:
+            host: "{{ groups['automationgateway'] | first }}"
+            port: 443
+            delay: 10
+
+        - name: 'Include role to start AAP'
+          ansible.builtin.include_role:
+            name: aap.utils.aap_svc_control
+            tasks_from: enable_instances.yml
+
+- name: 'Check for missing errata when using satellite_host'
+  when: patch_os_uses_satellite
+  ansible.builtin.include_tasks: missing_errata_check.yml
+
+- name: 'Refresh insights data'
+  when: patch_os_refresh_insights
+  ansible.builtin.include_tasks: refresh_insights.yml
+...

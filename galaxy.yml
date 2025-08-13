@@ -1,0 +1,50 @@
+---
+# This collection is initialized by https://github.com/ansible/ansible-creator 25.4.0
+
+# See https://docs.ansible.com/ansible/latest/dev_guide/collections_galaxy_meta.html
+
+namespace: aap
+name: utils
+version: 1.0.1
+readme: README.md
+authors:
+  - Tony Reveal <tony.reveal@redhat.com>
+
+description: A collection of Ansible playbooks and roles for managing Ansible Automation Platform
+license_file: GPL-3.0-or-later
+
+# TO-DO: update the tags based on your content type
+tags:
+  - ansible
+  - aap
+  - automation
+  - ansible_automation_platform
+  - containerized
+  - linux
+  - eda
+  - controller
+  - hub
+  - database
+
+# TO-DO: maintain this list to reflect the collection's dependencies
+dependencies:
+  "ansible.utils": "*" # note: "*" selects the latest version available
+
+repository: https://gitlab.consulting.redhat.com/internal-ansible-library/ansible-library
+documentation: https://gitlab.consulting.redhat.com/internal-ansible-library/ansible-library/-/blob/staging/README.md
+homepage: https://gitlab.consulting.redhat.com/internal-ansible-library/ansible-library
+issues: https://gitlab.consulting.redhat.com/internal-ansible-library/ansible-library/-/issues
+
+# A list of file glob-like patterns used to filter any files or directories that should not be included in the build
+# artifact. A pattern is matched from the relative path of the file or directory of the collection directory. This
+# uses 'fnmatch' to match the files or directories. Some directories and files like 'galaxy.yml', '*.pyc', '*.retry',
+# and '.git' are always filtered. Mutually exclusive with 'manifest'
+build_ignore:
+  - .gitignore
+  - changelogs/.plugin-cache.yaml
+# A dict controlling use of manifest directives used in building the collection artifact. The key 'directives' is a
+# list of MANIFEST.in style
+# L(directives,https://packaging.python.org/en/latest/guides/using-manifest-in/#manifest-in-commands). The key
+# 'omit_default_directives' is a boolean that controls whether the default directives are used. Mutually exclusive
+# with 'build_ignore'
+# manifest: null

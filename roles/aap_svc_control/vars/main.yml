@@ -1,0 +1,63 @@
+---
+aap_svc_control_containerized_gateway_svcs:
+  - 'automation-gateway.service'
+  - 'automation-gateway-proxy.service'
+
+aap_svc_control_containerized_redis_svcs:
+  - 'redis-tcp.service'
+  - 'redis-unix.service'
+
+aap_svc_control_containerized_controller_svcs:
+  - 'automation-controller-web.service'
+  - 'automation-controller-task.service'
+  - 'automation-controller-rsyslog.service'
+
+aap_svc_control_containerized_hopexec_svcs: []
+
+aap_svc_control_containerized_hub_svcs:
+  - 'automation-hub-worker-2.service'
+  - 'automation-hub-worker-1.service'
+  - 'automation-hub-web.service'
+  - 'automation-hub-content.service'
+  - 'automation-hub-api.service'
+
+aap_svc_control_containerized_eda_svcs:
+  - 'automation-eda-scheduler.service'
+  - 'automation-eda-activation-worker-2.service'
+  - 'automation-eda-activation-worker-1.service'
+  - 'automation-eda-worker-2.service'
+  - 'automation-eda-worker-1.service'
+  - 'automation-eda-web.service'
+  - 'automation-eda-daphne.service'
+  - 'automation-eda-api.service'
+
+aap_svc_control_rpm_gateway_svcs:
+  - 'automation-gateway-proxy.service'
+  - 'automation-gateway.target'
+
+aap_svc_control_rpm_redis_svcs:
+  - 'redis-platform.service'
+  - 'redis-sentinel.service'
+
+aap_svc_control_rpm_controller_svcs:
+  - 'automation-controller.service'
+
+aap_svc_control_rpm_hub_svcs:
+  - 'automation-hub.service'
+  - 'pulpcore-api.service'
+  - 'pulpcore-content.service'
+  # - pulpcore-worker@.service
+
+aap_svc_control_rpm_eda_svcs:
+  - 'automation-eda-controller.service'
+  - 'automation-eda-controller-scheduler.service'
+  - 'automation-eda-controller-event-stream.service'
+  - 'automation-eda-controller-daphne.service'
+  - 'automation-eda-controller-event-stream.socket'
+  - 'automation-eda-controller.socket'
+  # - 'automation-eda-controller-activation-worker@.service'
+  # - 'automation-eda-controller-default-worker@.service'
+
+aap_svc_control_rpm_hopexec_svcs:
+  - 'receptor.service'
+...

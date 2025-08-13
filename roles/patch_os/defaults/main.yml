@@ -1,0 +1,12 @@
+---
+patch_os_uses_satellite: "{{ uses_satellite | default(false) }}"
+patch_os_satellite_validate_certs: "{{ satellite_validate_certs | default(false) }}"
+patch_os_satellite_host: "{{ satellite_host }}"
+patch_os_satellite_user: "{{ satellite_user }}"
+patch_os_satellite_passwd: "{{ satellite_passwd }}"
+
+patch_os_refresh_insights: "{{ refresh_insights | default(false) }}"
+
+patch_os_only_bugfix: "{{ only_security | default(false) }}"
+patch_os_only_security: "{{ only_bugfix | default(false) }}"
+...

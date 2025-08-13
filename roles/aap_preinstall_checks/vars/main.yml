@@ -1,0 +1,53 @@
+---
+aap_preinstall_checks_test_results:
+  firewall:
+    firewalld_service: "{{ services['firewalld.service'] }}"
+    default_firewalld_zone: "{{ firewalld_info_result['firewalld_info']['default_zone'] }}"
+  hardware:
+    cpu_cores_count: "{{ ansible_processor_vcpus }}"
+    ram_amount: "{{ (ansible_memtotal_mb / 1024.0) | round(0, 'ceil') | int }} GB"
+  storage:
+    home_mount_size: "{{ home_mount_size | int | human_readable(unit='G') }}"
+    var_mount_size: "{{ var_mount_size | int | human_readable(unit='G') }}"
+    tmp_mount_size: "{{ tmp_mount_size | int | human_readable(unit='G') }}"
+    root_mount_size: "{{ root_mount_size | int | human_readable(unit='G') }}"
+  umask: "{{ umask_result['stdout'] }}"
+  user_info:
+    local: "{% if ansible_facts['getent_passwd'][ansible_env['USER']] is none %}true{% else %}false{% endif %}"
+    username: "{{ ansible_env['USER'] }}"
+    uid: "{{ ansible_user_uid }}"
+
+aap_preinstall_checks_install_pkgs:
+  - 'nmap-ncat'
+  - 'python-psutil'
+
+aap_preinstall_checks_disable_repos:
+  - "rhel-{{ ansible_facts['distribution_major_version'] }}-for-x86_64-appstream-rpms"
+
+aap_preinstall_checks_enable_repos:
+  - "rhel-{{ ansible_facts['distribution_major_version'] }}-for-x86_64-baseos-rpms"
+
+aap_preinstall_checks_all_repos:
+  - "rhel-{{ ansible_facts['distribution_major_version'] }}-for-x86_64-appstream-rpms"
+  - "rhel-{{ ansible_facts['distribution_major_version'] }}-for-x86_64-baseos-rpms"
+
+aap_preinstall_checks_receptor_port: >-
+  {% if is_containerized and receptor_port is defined %}
+  {{ receptor_port }}
+  {% elif not is_containerized and receptor_listener_port is defined %}
+  {{ receptor_listener_port }}
+  {% elif receptor_port is not defined or receptor_listener_port is not defined %}
+  '27199'
+  {% endif %}
+
+aap_preinstall_checks_receptor_protocol: >-
+  {% if is_containerized and receptor_protocol is defined %}
+  {{ receptor_protocol }}
+  {% elif not is_containerized and receptor_listener_protocol is defined %}
+  {{ receptor_listener_protocol }}
+  {% elif receptor_protocol is not defined or receptor_listener_protocol is not defined %}
+  'tcp'
+  {% endif %}
+
+aap_preinstall_checks_redis_port: 6379
+...

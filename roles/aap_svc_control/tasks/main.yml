@@ -1,0 +1,48 @@
+---
+- name: Check for AAP directory in users home directory
+  register: aap_stat
+  ansible.builtin.stat:
+    path: '~/aap'
+
+- name: Set fact for RPM or Containerized
+  ansible.builtin.set_fact:
+    is_containerized: "{{ aap_stat['stat']['exists'] }}"
+
+- name: Include tasks to disable instances
+  when:
+    - aap_svc_control_reqd_state == 'stopped' or aap_svc_control_reqd_state == 'restarted'
+  ansible.builtin.include_tasks: disable_instances.yml
+
+- name: Include tasks to stop services
+  when:
+    - aap_svc_control_reqd_state == 'stopped'
+  block:
+    - name: Include tasks for containerized AAP
+      when: is_containerized
+      ansible.builtin.include_tasks: containerized/stop.yml
+
+    - name: Include tasks for RPM AAP
+      when: not is_containerized
+      ansible.builtin.include_tasks: rpm/stop.yml
+
+- name: Include tasks to start services
+  when:
+    - aap_svc_control_reqd_state == 'started' or aap_svc_control_reqd_state == 'restarted'
+  block:
+    - name: Include tasks for containerized AAP
+      when: is_containerized
+      ansible.builtin.include_tasks: containerized/start_restart.yml
+
+    - name: Include tasks for RPM AAP
+      when: not is_containerized
+      ansible.builtin.include_tasks: rpm/start_restart.yml
+
+- name: Wait for all services to be ready
+  ansible.builtin.wait_for:
+    timeout: 15
+
+- name: Include tasks to enable instances
+  when:
+    - aap_svc_control_reqd_state == 'started' or aap_svc_control_reqd_state == 'restarted'
+  ansible.builtin.include_tasks: enable_instances.yml
+...

@@ -1,0 +1,112 @@
+---
+- name: Run block with become true
+  become: true
+  block:
+    - name: Stop services in Controller Group
+      when: inventory_hostname in groups['automationcontroller']
+      loop: "{{ aap_svc_control_rpm_controller_svcs }}"
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: "{{ aap_svc_control_reqd_state }}"
+
+    - name: Get Automation Hub Service Facts
+      when: inventory_hostname in groups['automationhub']
+      ansible.builtin.service_facts:
+
+    - name: Set fact of Automation Hub pulpcore worker services
+      when: inventory_hostname in groups['automationhub']
+      ansible.builtin.set_fact:
+        hub_workers: "{{ ansible_facts['services'] | select('search', '^pulpcore-worker@') }}"
+
+    - name: Stop services in Hub Group
+      when: inventory_hostname in groups['automationhub']
+      loop: "{{ aap_svc_control_rpm_hub_svcs }}"
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: "{{ aap_svc_control_reqd_state }}"
+
+    - name: Stop worker@ services in Hub Group
+      when:
+        - inventory_hostname in groups['automationhub']
+        - item != 'pulpcore-worker@.service'
+      loop: "{{ hub_workers }}"
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: "{{ aap_svc_control_reqd_state }}"
+
+    - name: Get Automation EDA Controller Service Facts
+      when: inventory_hostname in groups['automationedacontroller']
+      ansible.builtin.service_facts:
+
+    - name: Set fact of Automation EDA Controller worker services
+      when: inventory_hostname in groups['automationedacontroller']
+      ansible.builtin.set_fact:
+        default_workers: "{{ ansible_facts['services'] | select('search', '^automation-eda-controller-default-worker@') }}"
+        activation_workers: "{{ ansible_facts['services'] | select('search', '^automation-eda-controller-activation-worker@') }}"
+
+    - name: Stop services in EDA Group
+      when: inventory_hostname in groups['automationedacontroller']
+      loop: "{{ aap_svc_control_rpm_eda_svcs }}"
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: "{{ aap_svc_control_reqd_state }}"
+
+    - name: Stop default-worker services in EDA Group
+      when:
+        - inventory_hostname in groups['automationedacontroller']
+        - item != 'automation-eda-controller-default-worker@.service'
+      loop: "{{ default_workers }}"
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: "{{ aap_svc_control_reqd_state }}"
+
+    - name: Stop activation-worker services in EDA Group
+      when:
+        - inventory_hostname in groups['automationedacontroller']
+        - item != 'automation-eda-controller-activation-worker@.service'
+      loop: "{{ activation_workers }}"
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: "{{ aap_svc_control_reqd_state }}"
+
+    - name: Standalone Redis stop
+      when:
+        - inventory_hostname in groups['automationgateway']
+        - groups['redis'] is undefined
+        - redis_mode == 'standalone'
+      loop: "{{ aap_svc_control_rpm_redis_svcs }}"
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: "{{ aap_svc_control_reqd_state }}"
+
+    - name: Clustered Redis stop
+      when:
+        - groups['redis'] is defined
+        - inventory_hostname in groups['redis']
+      loop: "{{ aap_svc_control_rpm_redis_svcs }}"
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: "{{ aap_svc_control_reqd_state }}"
+
+    - name: Stop services in Gateway Group
+      when: inventory_hostname in groups['automationgateway']
+      loop: "{{ aap_svc_control_rpm_gateway_svcs }}"
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: "{{ aap_svc_control_reqd_state }}"
+
+    - name: Stop services in Execution Nodes Group
+      when: inventory_hostname in groups['execution_nodes']
+      loop: "{{ aap_svc_control_rpm_hopexec_svcs }}"
+      ansible.builtin.service:
+        name: "{{ item }}"
+        state: "{{ aap_svc_control_reqd_state }}"
+
+    - name: Stop services in Database Group
+      when:
+        - groups['database'] | length > 0
+        - inventory_hostname in groups['database']
+      ansible.builtin.service:
+        name: 'postgresql.service'
+        state: "{{ aap_svc_control_reqd_state }}"
+...

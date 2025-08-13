@@ -1,0 +1,7 @@
+---
+- name: Include role to patch AAP servers
+  hosts: all
+  gather_facts: false
+  roles:
+    - role: aap.utils.patch_os
+...

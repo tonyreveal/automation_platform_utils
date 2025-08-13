@@ -1,0 +1,40 @@
+---
+argument_specs:
+  main:
+    short_description: A role to patch AAP servers
+    options:
+      uses_satellite:
+        choices:
+          - true
+          - false
+        description: If using Satellite and want to check for missing errata
+        required: false
+        type: bool
+      satellite_validate_certs:
+        choices:
+          - true
+          - false
+        description: Whether or not to validate Satellite certificates
+        required: false
+        type: bool
+      satellite_host:
+        description: Hostname (without https://) of the Satellite server
+        required: false
+        type: str
+      satellite_user:
+        description: Username for Satellite connection
+        required: false
+        type: str
+      satellite_passwd:
+        description: Password for the Satellite user specified
+        no_log: true
+        required: false
+        type: str
+      refresh_insights:
+        choices:
+          - true
+          - false
+        description: Whether or not to refresh RHEL Insights Client
+        required: false
+        type: bool
+...
