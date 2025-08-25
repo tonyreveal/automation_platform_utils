@@ -1,0 +1,149 @@
+---
+- name: Set fact for RPM or Containerized
+  ansible.builtin.set_fact:
+    is_containerized: |-
+      {% if automationgateway_admin_password is defined %}false
+      {% elif gateway_admin_password is defined %}true
+      {% endif %}
+
+- name: Install packages needed to complete connectivity tests on all hosts
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ aap_preinstall_checks_install_pkgs }}"
+    state: 'present'
+
+- name: Get user info to determine if local
+  ansible.builtin.getent:
+    database: passwd
+    fail_key: false
+    key: "{{ ansible_env['USER'] }}"
+    service: sss
+
+- name: Get umask # noqa no-changed-when
+  register: umask_result
+  changed_when: false
+  ansible.builtin.command: 'umask'
+
+- name: Start atd service
+  become: true
+  when: inventory_hostname in groups['execution_nodes']
+  ansible.builtin.service:
+    name: atd
+    state: started
+
+- name: Get service facts
+  ansible.builtin.service_facts:
+
+- name: Get firewall information
+  register: firewalld_info_result
+  become: true
+  ansible.posix.firewalld_info:
+    active_zones: true
+
+- name: Allow receptor port if firewalld is enabled
+  when:
+    - "'firewalld.service' in services"
+    - services['firewalld.service']['state'] == 'running'
+    - inventory_hostname in groups['execution_nodes']
+  become: true
+  ansible.posix.firewalld:
+    port: "{{ aap_preinstall_checks_receptor_port | trim }}/{{ aap_preinstall_checks_receptor_protocol | trim }}"
+    state: enabled
+    zone: "{{ firewalld_info_result['firewalld_info']['default_zone'] }}"
+
+- name: Schedule AT job to run listener for receptor test
+  when: inventory_hostname in groups['execution_nodes']
+  ansible.posix.at:
+    command: "/usr/bin/nc -k -l {{ aap_preinstall_checks_receptor_port | trim }}"
+    count: 1
+    units: minutes
+    state: present
+
+- name: Wait for AT job to start
+  ansible.builtin.wait_for:
+    timeout: 60
+
+- name: Run receptor port test # noqa no-changed-when
+  when: inventory_hostname in groups['automationcontroller']
+  register: nc_results
+  ignore_errors: true
+  changed_when: false
+  loop: "{{ groups['execution_nodes'] }}"
+  loop_control:
+    loop_var: execnode
+  ansible.builtin.command:
+    argv:
+      - /usr/bin/nc
+      - -zv
+      - "{{ execnode }}"
+      - "{{ aap_preinstall_checks_receptor_port | trim }}"
+
+- name: Set fact from ncat results
+  ansible.builtin.set_fact:
+    receptor_test_results: |
+      {{ receptor_test_results | default([]) + [nc_results['results'] | selectattr('stderr_lines', 'defined') | map(attribute='stderr_lines')] }}
+
+- name: Remove scheduled AT job
+  when: inventory_hostname in groups['execution_nodes']
+  ansible.posix.at:
+    command: "/usr/bin/nc -k -l {{ aap_preinstall_checks_receptor_port | trim }}"
+    state: absent
+
+- name: Remove receptor port from firewalld after test
+  when:
+    - "'firewalld.service' in services"
+    - services['firewalld.service']['state'] == 'running'
+    - inventory_hostname in groups['execution_nodes']
+  become: true
+  ansible.posix.firewalld:
+    port: "{{ aap_preinstall_checks_receptor_port | trim }}/{{ aap_preinstall_checks_receptor_protocol | trim }}"
+    state: disabled
+    zone: "{{ firewalld_info_result['firewalld_info']['default_zone'] }}"
+
+- name: Get PID for the temporary receptor port listener
+  when: inventory_hostname in groups['execution_nodes']
+  register: __pids_results
+  community.general.pids:
+    name: nc
+
+- name: Kill the temporary receptor port listener # noqa no-changed-when
+  when:
+    - inventory_hostname in groups['execution_nodes']
+    - __pids_results['pids'] is defined
+    - __pids_results['pids'] | length
+  failed_when: false
+  ansible.builtin.command:
+    cmd: "kill {{ __pids_results['pids'][0] }}"
+
+- name: Stop atd
+  become: true
+  when: inventory_hostname in groups['execution_nodes']
+  ansible.builtin.service:
+    name: 'atd'
+    enabled: false
+    state: 'stopped'
+
+- name: Set fact for home, var, and root mounts
+  ansible.builtin.set_fact:
+    home_mount_size: "{{ ansible_mounts | selectattr('mount', 'equalto', '/home') | map(attribute='size_total') | join }}"
+    var_mount_size: "{{ ansible_mounts | selectattr('mount', 'equalto', '/var') | map(attribute='size_total') | join }}"
+    tmp_mount_size: "{{ ansible_mounts | selectattr('mount', 'equalto', '/tmp') | map(attribute='size_total') | join }}"
+    root_mount_size: "{{ ansible_mounts | selectattr('mount', 'equalto', '/') | map(attribute='size_total') | join }}"
+
+- name: Include tasks for Containerized based installs
+  when: is_containerized
+  ansible.builtin.include_tasks: containerized.yml
+
+- name: Include tasks for RPM based installs
+  when: not is_containerized
+  ansible.builtin.include_tasks: rpm.yml
+
+- name: Remove packages installed for testing
+  become: true
+  ansible.builtin.dnf:
+    name: "{{ aap_preinstall_checks_install_pkgs }}"
+    state: 'absent'
+
+- name: Include tasks to display results in output
+  ansible.builtin.include_tasks: results.yml
+...
