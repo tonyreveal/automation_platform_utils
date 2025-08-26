@@ -1,0 +1,8 @@
+---
+- name: Perform validation of AAP installation readiness
+  hosts: all
+  gather_facts: true
+  become: false
+  roles:
+    - role: aap.utils.aap_preinstall_checks
+...

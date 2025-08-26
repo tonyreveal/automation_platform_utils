@@ -25,5 +25,5 @@
   hosts: all
   gather_facts: false
   roles:
-    - aap.utils.aap_svc_control
+    - role: aap.utils.aap_svc_control
 ...
