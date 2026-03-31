@@ -5,7 +5,7 @@
 
 namespace: aap
 name: utils
-version: 1.0.1
+version: 1.0.0
 readme: README.md
 authors:
   - Tony Reveal <tony.reveal@redhat.com>
@@ -28,7 +28,8 @@ tags:
 
 # TO-DO: maintain this list to reflect the collection's dependencies
 dependencies:
-  "ansible.utils": "*" # note: "*" selects the latest version available
+  "ansible.utils": "*"
+  "ansible.windows": "*"
 
 repository: https://gitlab.consulting.redhat.com/internal-ansible-library/ansible-library
 documentation: https://gitlab.consulting.redhat.com/internal-ansible-library/ansible-library/-/blob/staging/README.md

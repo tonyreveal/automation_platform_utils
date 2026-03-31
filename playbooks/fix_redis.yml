@@ -1,0 +1,88 @@
+---
+- name: Clear existing standalone Redis configuration
+  hosts: automationgateway[0]
+  gather_facts: false
+  become: true
+  tasks:
+    - name: Set fact for RPM or Containerized
+      ansible.builtin.set_fact:
+        is_containerized: |-
+          {% if automationgateway_admin_password is defined %}false
+          {% elif gateway_admin_password is defined %}true
+          {% endif %}
+
+    - name: Block for RPM installations
+      when: not is_containerized
+      block:
+        - name: Stop redis
+          ansible.builtin.service:
+            name: redis-platform
+            state: stopped
+        
+        - name: Verify no response on port 6379
+          delegate_to: localhost
+          run_once: true
+          loop: "{{ ansible_play_hosts }}"
+          register: __ncat_results
+          failed_when: false
+          ansible.builtin.command: "nc -zv {{ item }} 6379"
+        
+        - name: Show ncat results
+          ansible.builtin.debug:
+            var: __ncat_results
+
+        - name: Delete /var/lib/redis
+          ansible.builtin.file:
+            path: '/var/lib/redis'
+            state: absent
+        
+        - name: Create /var/lib/redis
+          ansible.builtin.file:
+            path: '/var/lib/redis'
+            state: directory
+            owner: redis
+            group: redis
+            mode: '0750'
+
+    - name: Block for Containerized installations
+      when: is_containerized
+      block:
+        - name: Stop redis
+          vars:
+            redis_svcs:
+              - 'redis-tcp.service'
+              - 'redis-unix.service'
+          loop: "{{ redis_svcs }}"
+          when: "item in ansible_facts['services']"
+          ansible.builtin.systemd_service:
+            name: "{{ item }}"
+            scope: user
+            state: stopped
+          environment:
+            XDG_RUNTIME_DIR: "/run/user/{{ ansible_user_uid }}"
+        
+        - name: Verify no response on port 6379
+          delegate_to: localhost
+          run_once: true
+          loop: "{{ groups['redis'] }}"
+          register: __ncat_results
+          failed_when: false
+          ansible.builtin.command: "nc -zv {{ item }} 6379"
+        
+        - name: Show ncat results
+          ansible.builtin.debug:
+            var: __ncat_results
+
+        - name: Delete /var/lib/redis
+          ansible.builtin.file:
+            path: "{{ ansible_user_dir }}/aap/redis"
+            state: absent
+        
+        - name: Create /var/lib/redis
+          ansible.builtin.file:
+            path: "{{ ansible_user_dir }}/aap/redis"
+            state: directory
+            owner: "{{ ansible_user_id }}"
+            group: "{{ ansible_user_id }}"
+            mode: '0770'
+...
