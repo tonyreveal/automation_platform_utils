@@ -8,7 +8,7 @@ name: utils
 version: 1.0.0
 readme: README.md
 authors:
-  - Tony Reveal <tony.reveal@redhat.com>
+  - Tony Reveal <https://github.com/tonyreveal>
 
 description: A collection of Ansible playbooks and roles for managing Ansible Automation Platform
 license_file: GPL-3.0-or-later
